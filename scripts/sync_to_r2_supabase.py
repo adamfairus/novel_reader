@@ -34,6 +34,7 @@ import re
 import sys
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # Load konfigurasi dari .env.local jika ada
@@ -227,6 +228,8 @@ def main() -> int:
     sb_url = os.environ.get("PUBLIC_SUPABASE_URL", "")
     sb_key = os.environ.get("PUBLIC_SUPABASE_ANON_KEY", "")
 
+    all_upload_tasks = []
+
     print("=== Persiapan Sinkronisasi Novel ===")
     for n in NOVEL_MAPPING:
         folder_path = Path(n["folder"])
@@ -241,14 +244,18 @@ def main() -> int:
         for f in files:
             m_ch = re.match(r"^Chapter\s*0*(\d+(?:\.\d+)?)(?:\s*[-–:_]\s*(.*))?\.md$", f.name, re.I)
             if m_ch:
-                idx = int(float(m_ch.group(1)))
+                raw_num = m_ch.group(1)
+                ch_key = raw_num if "." in raw_num else str(int(raw_num))
+                idx = float(raw_num) if "." in raw_num else int(raw_num)
                 sub = (m_ch.group(2) or "").strip()
-                title = f"Chapter {idx}: {sub}" if sub else f"Chapter {idx}"
+                title = f"Chapter {ch_key}: {sub}" if sub else f"Chapter {ch_key}"
             else:
                 m = re.match(r"^(\d+)\s*-\s*(.+)\.md$", f.name)
+                ch_key = str(int(m.group(1))) if m else f.stem
                 idx = int(m.group(1)) if m else 0
                 title = m.group(2).replace("_", ":") if m else f.stem
-            r2_target_key = f"novels/{n['slug']}/{idx}.md"
+
+            r2_target_key = f"novels/{n['slug']}/{ch_key}.md"
 
             chapters_meta.append({
                 "novel_slug": n["slug"],
@@ -258,12 +265,7 @@ def main() -> int:
             })
 
             if do_r2 and not args.dry_run:
-                if not (r2_acc and r2_key and r2_sec):
-                    print("    ! Kredensial R2 belum lengkap di .env.local", file=sys.stderr)
-                    return 1
-                ok = upload_file_to_r2(f, r2_target_key, r2_acc, r2_key, r2_sec, r2_bucket)
-                if ok:
-                    print(f"    + R2: {r2_target_key}")
+                all_upload_tasks.append((f, r2_target_key))
 
         if do_supabase and not args.dry_run:
             if not (sb_url and sb_key):
@@ -272,6 +274,33 @@ def main() -> int:
             ok = sync_novel_to_supabase(n, chapters_meta, sb_url, sb_key)
             if ok:
                 print(f"    + Supabase: metadata {n['title']} berhasil disinkronkan.")
+
+    if all_upload_tasks:
+        if not (r2_acc and r2_key and r2_sec):
+            print("    ! Kredensial R2 belum lengkap di .env.local", file=sys.stderr)
+            return 1
+
+        total = len(all_upload_tasks)
+        print(f"\n[*] Memulai upload {total} chapter ke Cloudflare R2 (bucket: {r2_bucket}) dengan 8 worker...")
+        completed = 0
+        failed = 0
+
+        def _worker(task):
+            file_p, r2_k = task
+            return upload_file_to_r2(file_p, r2_k, r2_acc, r2_key, r2_sec, r2_bucket), r2_k
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            futures = [pool.submit(_worker, t) for t in all_upload_tasks]
+            for fut in as_completed(futures):
+                success, r2_k = fut.result()
+                completed += 1
+                if not success:
+                    failed += 1
+                if completed % 100 == 0 or completed == total:
+                    pct = (completed / total) * 100
+                    print(f"    -> Progress: {completed}/{total} ({pct:.1f}%) | Gagal: {failed}")
+
+        print(f"\n[✓] Selesai upload R2! Berhasil: {completed - failed}, Gagal: {failed}")
 
     if args.dry_run:
         print("\n[✓] Simulasi Dry-Run selesai! Semua file terpetakan dengan benar.")

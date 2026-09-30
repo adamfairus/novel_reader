@@ -15,7 +15,9 @@ Star Embracing Swordmaster/
 The Heavenly Demon/
 *.epub
 
-# System files
+# System & temporary files
 .directory
 .DS_Store
 *.log
+__pycache__/
+*.pyc
