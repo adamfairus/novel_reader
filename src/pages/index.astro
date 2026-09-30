@@ -34,7 +34,7 @@ import { INITIAL_NOVELS } from '../lib/novels';
             <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] via-transparent to-transparent opacity-80"></div>
             <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs">
               <span class="px-2.5 py-1 rounded-md bg-[var(--bg-surface)]/90 backdrop-blur-md border border-[var(--border-color)] font-medium text-[var(--text-primary)]">
-                {novel.total_chapters} Bab
+                {novel.total_chapters} Chapter
               </span>
             </div>
           </div>
@@ -59,7 +59,7 @@ import { INITIAL_NOVELS } from '../lib/novels';
                 href={`/novel/${novel.slug}`}
                 class="flex-1 text-center py-2 px-3 text-xs font-semibold rounded-lg bg-[var(--bg-elevated)] hover:bg-[var(--border-color)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors"
               >
-                Daftar Bab
+                Daftar Chapter
               </a>
               <a
                 href={`/novel/${novel.slug}/1`}

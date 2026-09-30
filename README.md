@@ -12,17 +12,17 @@ Web reader minimalis, cepat, dan elegan yang dibangun dengan **Astro 5**, **Tail
   - Tipografi editorial buku: Font Serif elegan (*Newsreader*) untuk cerita, dipadu Sans modern (*Plus Jakarta Sans*) untuk kontrol antarmuka.
   - **4 Tema Membaca:** *Obsidian Dark* (default arang mendalam), *OLED Pure Black* (hemat baterai layar AMOLED), *Warm Sepia* (kertas novel klasik), dan *Light*.
 - **🌐 Terjemahan Instan On-The-Fly (EN ⇄ ID):**
-  - Tombol toggle satu klik untuk menerjemahkan bab dari Bahasa Inggris ke Bahasa Indonesia secara langsung di browser tanpa perlu reload halaman.
+  - Tombol toggle satu klik untuk menerjemahkan chapter dari Bahasa Inggris ke Bahasa Indonesia secara langsung di browser tanpa perlu reload halaman.
   - Caching terjemahan di `sessionStorage` agar pergantian bahasa instan tanpa kuota ganda.
 - **⌨️ Keyboard Shortcuts:**
-  - `←` (Panah Kiri): Bab Sebelumnya
-  - `→` (Panah Kanan): Bab Selanjutnya
+  - `←` (Panah Kiri): Chapter Sebelumnya
+  - `→` (Panah Kanan): Chapter Selanjutnya
   - `T`: Toggle Terjemahan Bahasa Indonesia
 - **💾 Auto-Save Reading Progress:**
-  - Otomatis mengingat bab terakhir yang kamu baca untuk setiap novel.
+  - Otomatis mengingat chapter terakhir yang kamu baca untuk setiap novel.
 - **🗄️ Arsitektur Storage Terpisah:**
   - Kode website terisolasi dan super ringan di Git/GitHub.
-  - Ribuan file teks bab disimpan efisien di **Cloudflare R2** (*zero egress bandwidth cost*).
+  - Ribuan file teks chapter disimpan efisien di **Cloudflare R2** (*zero egress bandwidth cost*).
   - Metadata dan riwayat baca tersimpan di **Supabase**.
 
 ---

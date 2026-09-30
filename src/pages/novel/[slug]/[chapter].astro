@@ -12,7 +12,7 @@ if (!novel || !chapter) {
 const chapterNum = parseInt(chapter, 10) || 1;
 ---
 
-<Layout title={`${novel.title} — Bab ${chapterNum}`} isReader={true}>
+<Layout title={`${novel.title} — Chapter ${chapterNum}`} isReader={true}>
   <!-- Top Floating Reader Bar -->
   <div class="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-md transition-colors">
     <div class="max-w-4xl mx-auto px-4 h-12 flex items-center justify-between text-xs">
@@ -24,12 +24,12 @@ const chapterNum = parseInt(chapter, 10) || 1;
         <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m15 18-6-6 6-6"/>
         </svg>
-        <span class="hidden sm:inline font-medium">Daftar Bab</span>
+        <span class="hidden sm:inline font-medium">Daftar Chapter</span>
       </a>
 
       <!-- Center: Chapter Title Indicator -->
       <div class="text-center font-medium truncate max-w-[200px] sm:max-w-xs text-[var(--text-primary)]" id="header-chapter-title">
-        Bab {chapterNum}
+        Chapter {chapterNum}
       </div>
 
       <!-- Right: Reader Controls (Translate, Font, Prev, Next) -->
@@ -81,7 +81,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
         {novel.title}
       </p>
       <h1 id="chapter-main-title" class="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-        Memuat Bab {chapterNum}...
+        Memuat Chapter {chapterNum}...
       </h1>
       <div id="translation-status" class="hidden mt-2 text-[11px] text-sky-400 font-medium animate-pulse">
         Sedang menerjemahkan ke Bahasa Indonesia...
@@ -114,7 +114,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
         href={`/novel/${novel.slug}`}
         class="py-2.5 px-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-xs font-medium text-[var(--text-secondary)] transition-all"
       >
-        Daftar Bab
+        Daftar Chapter
       </a>
 
       <a
@@ -171,12 +171,12 @@ const chapterNum = parseInt(chapter, 10) || 1;
       // Fetch chapter content
       try {
         const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterNum}`);
-        if (!res.ok) throw new Error('Bab tidak ditemukan');
+        if (!res.ok) throw new Error('Chapter tidak ditemukan');
         const data = await res.json();
 
         // Parse content Markdown sederhana -> Paragraf HTML
         const rawLines = data.content.split('\n\n');
-        let chapterTitleParsed = `Bab ${chapterNum}`;
+        let chapterTitleParsed = `Chapter ${chapterNum}`;
 
         originalParagraphs = [];
         rawLines.forEach((line) => {
@@ -188,9 +188,9 @@ const chapterNum = parseInt(chapter, 10) || 1;
             const chNum = numMatch ? numMatch[1] : String(chapterNum);
             const sub = raw.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();
             if (!sub || /^Chapter\b/i.test(sub)) {
-              chapterTitleParsed = `Bab ${chNum}`;
+              chapterTitleParsed = `Chapter ${chNum}`;
             } else {
-              chapterTitleParsed = `Bab ${chNum}: ${sub}`;
+              chapterTitleParsed = `Chapter ${chNum}: ${sub}`;
             }
           } else if (trimmed.startsWith('## ')) {
             originalParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
@@ -272,7 +272,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
             translateLabel.textContent = 'EN';
             translateBtn.classList.add('bg-sky-500', 'text-white');
           } catch (e) {
-            alert('Gagal menerjemahkan bab ini. Silakan coba lagi.');
+            alert('Gagal menerjemahkan chapter ini. Silakan coba lagi.');
           } finally {
             isTranslating = false;
             translationStatus?.classList.add('hidden');
@@ -293,7 +293,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
           }
         });
       } catch (err) {
-        readerBody.innerHTML = '<div class="py-12 text-center text-sm text-red-400">Gagal memuat konten bab. Periksa koneksi atau file lokal.</div>';
+        readerBody.innerHTML = '<div class="py-12 text-center text-sm text-red-400">Gagal memuat konten chapter. Periksa koneksi atau file lokal.</div>';
       }
     })();
   </script>

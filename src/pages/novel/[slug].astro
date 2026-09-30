@@ -39,7 +39,7 @@ if (!novel) {
 
         <div class="flex items-center gap-4 mt-3 text-xs text-[var(--text-secondary)]">
           <span class="px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-color)]">
-            Total {novel.total_chapters} Bab
+            Total {novel.total_chapters} Chapters
           </span>
           <span class="text-emerald-400 font-medium">Lengkap</span>
         </div>
@@ -60,7 +60,7 @@ if (!novel) {
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="6 3 20 12 6 21 6 3"/>
             </svg>
-            <span id="continue-read-text">Mulai dari Bab 1</span>
+            <span id="continue-read-text">Mulai dari Chapter 1</span>
           </a>
         </div>
       </div>
@@ -70,8 +70,8 @@ if (!novel) {
     <div class="mt-10">
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 class="text-xl font-bold text-[var(--text-primary)]">Daftar Bab</h2>
-          <p class="text-xs text-[var(--text-muted)] mt-0.5">Pilih bab untuk mulai membaca</p>
+          <h2 class="text-xl font-bold text-[var(--text-primary)]">Daftar Chapter</h2>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">Pilih chapter untuk mulai membaca</p>
         </div>
 
         <!-- Search Input -->
@@ -79,7 +79,7 @@ if (!novel) {
           <input
             id="chapter-search"
             type="text"
-            placeholder="Cari bab..."
+            placeholder="Cari chapter..."
             class="w-full py-2 pl-9 pr-4 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-sky-400 transition-colors"
           />
           <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -91,7 +91,7 @@ if (!novel) {
 
       <!-- Loading State -->
       <div id="loading-spinner" class="py-12 text-center text-xs text-[var(--text-muted)]">
-        Memuat daftar bab...
+        Memuat daftar chapter...
       </div>
 
       <!-- Chapter Grid / List -->
@@ -110,7 +110,7 @@ if (!novel) {
         const text = document.getElementById('continue-read-text');
         if (btn && text) {
           btn.href = `/novel/${slug}/${lastRead}`;
-          text.textContent = `Lanjut Bab ${lastRead}`;
+          text.textContent = `Lanjut Chapter ${lastRead}`;
         }
       }
 
@@ -129,7 +129,7 @@ if (!novel) {
         function renderChapters(list) {
           container.innerHTML = '';
           if (list.length === 0) {
-            container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-[var(--text-muted)]">Bab tidak ditemukan</div>';
+            container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-[var(--text-muted)]">Chapter tidak ditemukan</div>';
             return;
           }
 
@@ -139,7 +139,7 @@ if (!novel) {
             a.className = 'p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all flex items-center justify-between gap-2 group';
             a.innerHTML = `
               <span class="px-2 py-0.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-color)] text-sky-400 font-mono text-[11px] font-semibold shrink-0">
-                ${ch.label || `Bab ${ch.index}`}
+                ${ch.label || `Chapter ${ch.index}`}
               </span>
               <span class="truncate flex-1 text-left text-[var(--text-primary)] group-hover:text-sky-300 transition-colors">
                 ${ch.subtitle || ch.displayTitle || ch.title}
@@ -171,7 +171,7 @@ if (!novel) {
         }
       } catch (err) {
         const spinner = document.getElementById('loading-spinner');
-        if (spinner) spinner.textContent = 'Gagal memuat daftar bab.';
+        if (spinner) spinner.textContent = 'Gagal memuat daftar chapter.';
       }
     })();
   </script>

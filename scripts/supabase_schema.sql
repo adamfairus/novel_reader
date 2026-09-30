@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS public.novels (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 2. Tabel Chapters (Metadata bab, konten tetap di Cloudflare R2)
+-- 2. Tabel Chapters (Metadata chapter, konten tetap di Cloudflare R2)
 CREATE TABLE IF NOT EXISTS public.chapters (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     novel_slug TEXT REFERENCES public.novels(slug) ON DELETE CASCADE,
@@ -40,7 +40,7 @@ ALTER TABLE public.novels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chapters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reading_progress ENABLE ROW LEVEL SECURITY;
 
--- Policy: Publik bisa membaca katalog & bab
+-- Policy: Publik bisa membaca katalog & chapter
 CREATE POLICY "Public Read Novels" ON public.novels FOR SELECT USING (true);
 CREATE POLICY "Public Read Chapters" ON public.chapters FOR SELECT USING (true);
 CREATE POLICY "Public Manage Progress" ON public.reading_progress FOR ALL USING (true);

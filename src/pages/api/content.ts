@@ -58,5 +58,5 @@ export const GET: APIRoute = async ({ request }) => {
     }
   }
 
-  return new Response(JSON.stringify({ error: 'Bab tidak ditemukan' }), { status: 404 });
+  return new Response(JSON.stringify({ error: 'Chapter tidak ditemukan' }), { status: 404 });
 };

@@ -20,10 +20,10 @@ export interface ChapterItem {
 export function parseChapterTitle(index: number, raw: string): { label: string; subtitle: string; displayTitle: string } {
   const t = raw.replace(/_/g, ':').trim();
 
-  // Ambil nomor bab asli (dukung desimal seperti 498.9)
+  // Ambil nomor chapter asli (dukung desimal seperti 498.9)
   const numMatch = t.match(/Chapter\s*#?\s*(\d+(?:\.\d+)?)/i);
   const chNum = numMatch ? numMatch[1] : String(index);
-  const label = `Bab ${chNum}`;
+  const label = `Chapter ${chNum}`;
 
   // Bersihkan pola ganda dari translator seperti 'Chapter 82 - 105 - Don't mess with moles (1)'
   const sub = t.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();

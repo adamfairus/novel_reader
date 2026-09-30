@@ -206,7 +206,7 @@ def sync_novel_to_supabase(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Upload novel ke Cloudflare R2 & Supabase")
-    ap.add_argument("--r2", action="store_true", help="upload file bab ke Cloudflare R2")
+    ap.add_argument("--r2", action="store_true", help="upload file chapter ke Cloudflare R2")
     ap.add_argument("--supabase", action="store_true", help="sinkronkan metadata ke Supabase")
     ap.add_argument("--all", action="store_true", help="jalankan R2 + Supabase")
     ap.add_argument("--dry-run", action="store_true", help="simulasi tanpa mengirim data")
@@ -235,7 +235,7 @@ def main() -> int:
             continue
 
         files = sorted(folder_path.glob("*.md"))
-        print(f"\n[*] {n['title']} ({len(files)} bab)")
+        print(f"\n[*] {n['title']} ({len(files)} chapter)")
 
         chapters_meta = []
         for f in files:
