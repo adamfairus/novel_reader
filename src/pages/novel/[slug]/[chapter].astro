@@ -2,6 +2,8 @@
 import Layout from '../../../layouts/Layout.astro';
 import { getLocalNovel } from '../../../lib/novels';
 import chaptersManifest from '@/data/chapters-manifest.json';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const { slug, chapter } = Astro.params;
 const novel = getLocalNovel(slug || '');
@@ -26,6 +28,62 @@ const prevChapter = currentIdx > 0 ? chaptersList[currentIdx - 1] : null;
 const nextChapter = currentIdx !== -1 && currentIdx < chaptersList.length - 1 ? chaptersList[currentIdx + 1] : null;
 
 const initialTitle = currentChapter ? (currentChapter.displayTitle || currentChapter.label) : `Chapter ${chapter}`;
+
+// Ambil konten langsung di server saat SSR (Bypass API round-trip)
+const r2Base = import.meta.env.PUBLIC_R2_URL || process.env.PUBLIC_R2_URL || 'https://pub-e9408102ee0a432a82949dea2cd377f0.r2.dev';
+let rawContent = '';
+
+// 1. Coba dari Cloudflare R2
+try {
+  const r2Url = `${r2Base.replace(/\/$/, '')}/novels/${novel.slug}/${chapter}.md`;
+  const res = await fetch(r2Url);
+  if (res.ok) {
+    rawContent = await res.text();
+  }
+} catch {
+  // fallback ke lokal
+}
+
+// 2. Fallback baca dari folder lokal jika masih dalam dev mode
+if (!rawContent) {
+  const SLUG_TO_FOLDER: Record<string, string> = {
+    'myst-might-mayhem': 'Myst Might Mayhem',
+    'the-heavenly-demon-cant-live-a-normal-life': 'The Heavenly Demon',
+    'star-embracing-swordmaster': 'Star Embracing Swordmaster',
+  };
+  const folderName = SLUG_TO_FOLDER[novel.slug];
+  if (folderName) {
+    const localDir = path.resolve(process.cwd(), folderName);
+    if (fs.existsSync(localDir)) {
+      const files = fs.readdirSync(localDir);
+      const targetFile = files.find((f) => {
+        const m = f.match(/^(?:Chapter\s*0*(\d+(?:\.\d+)?)|(\d+)\s*-)/i);
+        return m && (m[1] === chapter || m[2] === chapter || parseInt(m[1] || m[2], 10) === parseInt(chapter, 10));
+      });
+      if (targetFile) {
+        rawContent = fs.readFileSync(path.join(localDir, targetFile), 'utf-8');
+      }
+    }
+  }
+}
+
+// Parse markdown lines ke paragraf
+const rawLines = rawContent ? rawContent.split('\n\n') : [];
+const initialParagraphs: string[] = [];
+
+rawLines.forEach((line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+  if (trimmed.startsWith('# ')) {
+    // header diabaikan karena sudah ada di header page
+  } else if (trimmed.startsWith('## ')) {
+    initialParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
+  } else if (trimmed === '---') {
+    initialParagraphs.push('<hr class="my-8 border-[var(--border-color)]"/>');
+  } else {
+    initialParagraphs.push(trimmed);
+  }
+});
 ---
 
 <Layout title={`${novel.title} — ${initialTitle}`} isReader={true}>
@@ -106,9 +164,18 @@ const initialTitle = currentChapter ? (currentChapter.displayTitle || currentCha
 
     <!-- Reading Content (Bounded to 72ch for optimal reading measure) -->
     <div id="reader-body" class="reading-content text-[var(--text-primary)] transition-all">
-      <div class="py-16 text-center text-xs text-[var(--text-muted)] animate-pulse">
-        Mengambil teks dari server...
-      </div>
+      {initialParagraphs.length === 0 ? (
+        <div class="py-16 text-center text-xs text-[var(--text-muted)] animate-pulse" id="loading-fallback">
+          Mengambil teks dari Cloudflare R2...
+        </div>
+      ) : (
+        initialParagraphs.map((p) => {
+          if (p.startsWith('<h3>') || p.startsWith('<hr')) {
+            return <Fragment set:html={p} />;
+          }
+          return <p>{p}</p>;
+        })
+      )}
     </div>
 
     <!-- Bottom Navigation -->
@@ -148,22 +215,20 @@ const initialTitle = currentChapter ? (currentChapter.displayTitle || currentCha
     </footer>
   </article>
 
-  <!-- Client-side Reader Engine (Fetch, Typography, Translate, Cache) -->
-  <script define:vars={{ slug: novel.slug, chapterParam: chapter }}>
+  <!-- Client-side Reader Engine (Typography, Translate, Cache, Failover) -->
+  <script define:vars={{ slug: novel.slug, chapterParam: chapter, initialParagraphs, r2BaseUrl: r2Base }}>
     (async function () {
-      // Simpan progress baca terakhir
+      // Simpan bookmark progress baca terakhir
       localStorage.setItem(`novel-last-read-${slug}`, String(chapterParam));
 
       const readerBody = document.getElementById('reader-body');
-      const chapterMainTitle = document.getElementById('chapter-main-title');
-      const headerTitle = document.getElementById('header-chapter-title');
       const translateBtn = document.getElementById('translate-btn');
       const translateLabel = document.getElementById('translate-label');
       const translationStatus = document.getElementById('translation-status');
       const fontIncBtn = document.getElementById('font-size-inc');
       const fontDecBtn = document.getElementById('font-size-dec');
 
-      let originalParagraphs = [];
+      let originalParagraphs = initialParagraphs || [];
       let translatedParagraphs = [];
       let isTranslated = false;
       let isTranslating = false;
@@ -186,133 +251,134 @@ const initialTitle = currentChapter ? (currentChapter.displayTitle || currentCha
         localStorage.setItem('novel-reader-font-size', String(next));
       });
 
-      // Fetch chapter content
-      try {
-        const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterParam}`);
-        if (!res.ok) throw new Error('Chapter tidak ditemukan');
-        const data = await res.json();
-
-        // Parse content Markdown sederhana -> Paragraf HTML
-        const rawLines = data.content.split('\n\n');
-        let chapterTitleParsed = `Chapter ${chapterParam}`;
-
-        originalParagraphs = [];
-        rawLines.forEach((line) => {
-          const trimmed = line.trim();
-          if (!trimmed) return;
-          if (trimmed.startsWith('# ')) {
-            const raw = trimmed.replace(/^#\s+/, '').replace(/_/g, ':').trim();
-            const numMatch = raw.match(/Chapter\s*#?\s*(\d+(?:\.\d+)?)/i);
-            const chNum = numMatch ? numMatch[1] : String(chapterParam);
-            const sub = raw.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();
-            if (!sub || /^Chapter\b/i.test(sub)) {
-              chapterTitleParsed = `Chapter ${chNum}`;
-            } else {
-              chapterTitleParsed = `Chapter ${chNum}: ${sub}`;
-            }
-          } else if (trimmed.startsWith('## ')) {
-            originalParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
-          } else if (trimmed === '---') {
-            originalParagraphs.push('<hr class="my-8 border-[var(--border-color)]"/>');
+      function renderContent(paras) {
+        readerBody.innerHTML = '';
+        paras.forEach((p) => {
+          if (p.startsWith('<h3>') || p.startsWith('<hr')) {
+            readerBody.innerHTML += p;
           } else {
-            originalParagraphs.push(trimmed);
+            const el = document.createElement('p');
+            el.textContent = p;
+            readerBody.appendChild(el);
           }
         });
-
-        chapterMainTitle.textContent = chapterTitleParsed;
-        headerTitle.textContent = chapterTitleParsed;
-
-        function renderContent(paras) {
-          readerBody.innerHTML = '';
-          paras.forEach((p) => {
-            if (p.startsWith('<h3>') || p.startsWith('<hr')) {
-              readerBody.innerHTML += p;
-            } else {
-              const el = document.createElement('p');
-              el.textContent = p;
-              readerBody.appendChild(el);
-            }
-          });
-        }
-
-        renderContent(originalParagraphs);
-
-        // Translate logic with Session Cache
-        const cacheKey = `novel-trans-${slug}-${chapterParam}`;
-        const cachedTrans = sessionStorage.getItem(cacheKey);
-        if (cachedTrans) {
-          translatedParagraphs = JSON.parse(cachedTrans);
-        }
-
-        async function doTranslate() {
-          if (isTranslating) return;
-
-          if (isTranslated) {
-            // Kembali ke English
-            renderContent(originalParagraphs);
-            isTranslated = false;
-            translateLabel.textContent = 'ID';
-            translateBtn.classList.remove('bg-sky-500', 'text-white');
-            return;
-          }
-
-          if (translatedParagraphs.length > 0) {
-            // Gunakan cache terjemahan
-            renderContent(translatedParagraphs);
-            isTranslated = true;
-            translateLabel.textContent = 'EN';
-            translateBtn.classList.add('bg-sky-500', 'text-white');
-            return;
-          }
-
-          // Panggil API translasi
-          isTranslating = true;
-          translationStatus?.classList.remove('hidden');
-
-          try {
-            const filterTextParas = originalParagraphs.filter((p) => !p.startsWith('<'));
-            const transRes = await fetch('/api/translate', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paragraphs: filterTextParas }),
-            });
-            const transData = await transRes.json();
-
-            let transIdx = 0;
-            translatedParagraphs = originalParagraphs.map((p) => {
-              if (p.startsWith('<')) return p;
-              return transData.translated[transIdx++] || p;
-            });
-
-            sessionStorage.setItem(cacheKey, JSON.stringify(translatedParagraphs));
-            renderContent(translatedParagraphs);
-            isTranslated = true;
-            translateLabel.textContent = 'EN';
-            translateBtn.classList.add('bg-sky-500', 'text-white');
-          } catch (e) {
-            alert('Gagal menerjemahkan chapter ini. Silakan coba lagi.');
-          } finally {
-            isTranslating = false;
-            translationStatus?.classList.add('hidden');
-          }
-        }
-
-        translateBtn?.addEventListener('click', doTranslate);
-
-        // Keyboard Shortcuts
-        document.addEventListener('keydown', (e) => {
-          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-          if (e.key === 'ArrowLeft') {
-            document.getElementById('prev-btn')?.click();
-          } else if (e.key === 'ArrowRight') {
-            document.getElementById('next-btn')?.click();
-          } else if (e.key.toLowerCase() === 't') {
-            doTranslate();
-          }
-        });
-      } catch (err) {
-        readerBody.innerHTML = '<div class="py-12 text-center text-sm text-red-400">Gagal memuat konten chapter. Periksa koneksi atau file lokal.</div>';
       }
+
+      // Failover jika server SSR tidak berhasil mengambil teks (misal R2 timeout di serverless)
+      if (originalParagraphs.length === 0) {
+        try {
+          let text = '';
+          // Coba dari API
+          try {
+            const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterParam}`);
+            if (res.ok) {
+              const d = await res.json();
+              text = d.content;
+            }
+          } catch {}
+
+          // Fallback langsung ke Cloudflare R2 publik dari browser
+          if (!text) {
+            const r2Direct = `${r2BaseUrl.replace(/\/$/, '')}/novels/${slug}/${chapterParam}.md`;
+            const r2Res = await fetch(r2Direct);
+            if (r2Res.ok) {
+              text = await r2Res.text();
+            }
+          }
+
+          if (text) {
+            const lines = text.split('\n\n');
+            originalParagraphs = [];
+            lines.forEach((line) => {
+              const trimmed = line.trim();
+              if (!trimmed || trimmed.startsWith('# ')) return;
+              if (trimmed.startsWith('## ')) {
+                originalParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
+              } else if (trimmed === '---') {
+                originalParagraphs.push('<hr class="my-8 border-[var(--border-color)]"/>');
+              } else {
+                originalParagraphs.push(trimmed);
+              }
+            });
+            renderContent(originalParagraphs);
+          } else {
+            readerBody.innerHTML = '<div class="py-16 text-center text-xs text-red-400">Gagal memuat konten chapter. Periksa koneksi internet kamu.</div>';
+          }
+        } catch {
+          readerBody.innerHTML = '<div class="py-16 text-center text-xs text-red-400">Gagal memuat konten chapter.</div>';
+        }
+      }
+
+      // Translate logic with Session Cache
+      const cacheKey = `novel-trans-${slug}-${chapterParam}`;
+      const cachedTrans = sessionStorage.getItem(cacheKey);
+      if (cachedTrans) {
+        translatedParagraphs = JSON.parse(cachedTrans);
+      }
+
+      async function doTranslate() {
+        if (isTranslating || originalParagraphs.length === 0) return;
+
+        if (isTranslated) {
+          renderContent(originalParagraphs);
+          isTranslated = false;
+          translateLabel.textContent = 'ID';
+          translateBtn.classList.remove('bg-sky-500', 'text-white');
+          return;
+        }
+
+        if (translatedParagraphs.length > 0) {
+          renderContent(translatedParagraphs);
+          isTranslated = true;
+          translateLabel.textContent = 'EN';
+          translateBtn.classList.add('bg-sky-500', 'text-white');
+          return;
+        }
+
+        isTranslating = true;
+        translationStatus?.classList.remove('hidden');
+
+        try {
+          const filterTextParas = originalParagraphs.filter((p) => !p.startsWith('<'));
+          const transRes = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paragraphs: filterTextParas }),
+          });
+          const transData = await transRes.json();
+
+          let transIdx = 0;
+          translatedParagraphs = originalParagraphs.map((p) => {
+            if (p.startsWith('<')) return p;
+            return transData.translated[transIdx++] || p;
+          });
+
+          sessionStorage.setItem(cacheKey, JSON.stringify(translatedParagraphs));
+          renderContent(translatedParagraphs);
+          isTranslated = true;
+          translateLabel.textContent = 'EN';
+          translateBtn.classList.add('bg-sky-500', 'text-white');
+        } catch (e) {
+          alert('Gagal menerjemahkan chapter ini. Silakan coba lagi.');
+        } finally {
+          isTranslating = false;
+          translationStatus?.classList.add('hidden');
+        }
+      }
+
+      translateBtn?.addEventListener('click', doTranslate);
+
+      // Keyboard Shortcuts
+      document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (e.key === 'ArrowLeft') {
+          document.getElementById('prev-btn')?.click();
+        } else if (e.key === 'ArrowRight') {
+          document.getElementById('next-btn')?.click();
+        } else if (e.key.toLowerCase() === 't') {
+          doTranslate();
+        }
+      });
     })();
   </script>
 </Layout>

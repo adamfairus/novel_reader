@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Parameter slug dan chapter wajib diisi' }), { status: 400 });
   }
 
-  const r2BaseUrl = import.meta.env.PUBLIC_R2_URL || '';
+  const r2BaseUrl = import.meta.env.PUBLIC_R2_URL || process.env.PUBLIC_R2_URL || 'https://pub-e9408102ee0a432a82949dea2cd377f0.r2.dev';
 
   // 1. Jika Cloudflare R2 URL sudah diset dan valid, fetch dari R2
   if (r2BaseUrl && !r2BaseUrl.includes('your-id')) {
