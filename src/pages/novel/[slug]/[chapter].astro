@@ -1,0 +1,292 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { getLocalNovel } from '../../../lib/novels';
+
+const { slug, chapter } = Astro.params;
+const novel = getLocalNovel(slug || '');
+
+if (!novel || !chapter) {
+  return Astro.redirect('/');
+}
+
+const chapterNum = parseInt(chapter, 10) || 1;
+---
+
+<Layout title={`${novel.title} — Bab ${chapterNum}`} isReader={true}>
+  <!-- Top Floating Reader Bar -->
+  <div class="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-md transition-colors">
+    <div class="max-w-4xl mx-auto px-4 h-12 flex items-center justify-between text-xs">
+      <!-- Left: Back to novel -->
+      <a
+        href={`/novel/${novel.slug}`}
+        class="flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors py-1 px-2 rounded-md hover:bg-[var(--bg-elevated)]"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+        <span class="hidden sm:inline font-medium">Daftar Bab</span>
+      </a>
+
+      <!-- Center: Chapter Title Indicator -->
+      <div class="text-center font-medium truncate max-w-[200px] sm:max-w-xs text-[var(--text-primary)]" id="header-chapter-title">
+        Bab {chapterNum}
+      </div>
+
+      <!-- Right: Reader Controls (Translate, Font, Prev, Next) -->
+      <div class="flex items-center gap-1.5">
+        <!-- Translate Toggle Button -->
+        <button
+          id="translate-btn"
+          type="button"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] font-medium transition-all"
+          title="Terjemahkan ke Bahasa Indonesia (Shortcut: T)"
+        >
+          <svg class="w-3.5 h-3.5 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m5 8 6 6"/>
+            <path d="m4 14 6-6 2-3"/>
+            <path d="M2 5h12"/>
+            <path d="M7 2h1"/>
+            <path d="m22 22-5-10-5 10"/>
+            <path d="M14 18h6"/>
+          </svg>
+          <span id="translate-label">ID</span>
+        </button>
+
+        <!-- Font Size Adjuster -->
+        <button
+          id="font-size-dec"
+          type="button"
+          class="p-1 px-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-serif text-xs"
+          title="Kecilkan Font"
+        >
+          A-
+        </button>
+        <button
+          id="font-size-inc"
+          type="button"
+          class="p-1 px-2 rounded-md border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] font-serif text-sm font-bold"
+          title="Besarkan Font"
+        >
+          A+
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reading Surface -->
+  <article class="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+    <!-- Chapter Header -->
+    <header class="max-w-measure mx-auto mb-10 pb-6 border-b border-[var(--border-color)] text-center">
+      <p class="text-xs font-semibold text-sky-400 tracking-wider uppercase mb-2">
+        {novel.title}
+      </p>
+      <h1 id="chapter-main-title" class="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+        Memuat Bab {chapterNum}...
+      </h1>
+      <div id="translation-status" class="hidden mt-2 text-[11px] text-sky-400 font-medium animate-pulse">
+        Sedang menerjemahkan ke Bahasa Indonesia...
+      </div>
+    </header>
+
+    <!-- Reading Content (Bounded to 72ch for optimal reading measure) -->
+    <div id="reader-body" class="reading-content text-[var(--text-primary)] transition-all">
+      <div class="py-16 text-center text-xs text-[var(--text-muted)] animate-pulse">
+        Mengambil teks dari server...
+      </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <footer class="max-w-measure mx-auto mt-16 pt-8 border-t border-[var(--border-color)] flex items-center justify-between gap-4">
+      <a
+        id="prev-btn"
+        href={`/novel/${novel.slug}/${Math.max(1, chapterNum - 1)}`}
+        class={`py-2.5 px-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-xs font-medium text-[var(--text-primary)] transition-all flex items-center gap-1.5 ${
+          chapterNum <= 1 ? 'opacity-40 pointer-events-none' : ''
+        }`}
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+        <span>Sebelumnya</span>
+      </a>
+
+      <a
+        href={`/novel/${novel.slug}`}
+        class="py-2.5 px-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-xs font-medium text-[var(--text-secondary)] transition-all"
+      >
+        Daftar Bab
+      </a>
+
+      <a
+        id="next-btn"
+        href={`/novel/${novel.slug}/${chapterNum + 1}`}
+        class="py-2.5 px-4 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-medium shadow-sm transition-all flex items-center gap-1.5"
+      >
+        <span>Selanjutnya</span>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </a>
+    </footer>
+  </article>
+
+  <!-- Client-side Reader Engine (Fetch, Typography, Translate, Cache) -->
+  <script define:vars={{ slug: novel.slug, chapterNum }}>
+    (async function () {
+      // Simpan progress baca terakhir
+      localStorage.setItem(`arcana-last-read-${slug}`, String(chapterNum));
+
+      const readerBody = document.getElementById('reader-body');
+      const chapterMainTitle = document.getElementById('chapter-main-title');
+      const headerTitle = document.getElementById('header-chapter-title');
+      const translateBtn = document.getElementById('translate-btn');
+      const translateLabel = document.getElementById('translate-label');
+      const translationStatus = document.getElementById('translation-status');
+      const fontIncBtn = document.getElementById('font-size-inc');
+      const fontDecBtn = document.getElementById('font-size-dec');
+
+      let originalParagraphs = [];
+      let translatedParagraphs = [];
+      let isTranslated = false;
+      let isTranslating = false;
+
+      // Font size persistence
+      const savedFontSize = parseInt(localStorage.getItem('arcana-font-size') || '18', 10);
+      if (readerBody) readerBody.style.fontSize = `${savedFontSize}px`;
+
+      fontIncBtn?.addEventListener('click', () => {
+        const cur = parseInt(readerBody.style.fontSize || '18', 10);
+        const next = Math.min(28, cur + 2);
+        readerBody.style.fontSize = `${next}px`;
+        localStorage.setItem('arcana-font-size', String(next));
+      });
+
+      fontDecBtn?.addEventListener('click', () => {
+        const cur = parseInt(readerBody.style.fontSize || '18', 10);
+        const next = Math.max(14, cur - 2);
+        readerBody.style.fontSize = `${next}px`;
+        localStorage.setItem('arcana-font-size', String(next));
+      });
+
+      // Fetch chapter content
+      try {
+        const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterNum}`);
+        if (!res.ok) throw new Error('Bab tidak ditemukan');
+        const data = await res.json();
+
+        // Parse content Markdown sederhana -> Paragraf HTML
+        const rawLines = data.content.split('\n\n');
+        let chapterTitleParsed = `Bab ${chapterNum}`;
+
+        originalParagraphs = [];
+        rawLines.forEach((line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          if (trimmed.startsWith('# ')) {
+            chapterTitleParsed = trimmed.replace(/^#\s+/, '');
+          } else if (trimmed.startsWith('## ')) {
+            originalParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
+          } else if (trimmed === '---') {
+            originalParagraphs.push('<hr class="my-8 border-[var(--border-color)]"/>');
+          } else {
+            originalParagraphs.push(trimmed);
+          }
+        });
+
+        chapterMainTitle.textContent = chapterTitleParsed;
+        headerTitle.textContent = chapterTitleParsed;
+
+        function renderContent(paras) {
+          readerBody.innerHTML = '';
+          paras.forEach((p) => {
+            if (p.startsWith('<h3>') || p.startsWith('<hr')) {
+              readerBody.innerHTML += p;
+            } else {
+              const el = document.createElement('p');
+              el.textContent = p;
+              readerBody.appendChild(el);
+            }
+          });
+        }
+
+        renderContent(originalParagraphs);
+
+        // Translate logic with Session Cache
+        const cacheKey = `arcana-trans-${slug}-${chapterNum}`;
+        const cachedTrans = sessionStorage.getItem(cacheKey);
+        if (cachedTrans) {
+          translatedParagraphs = JSON.parse(cachedTrans);
+        }
+
+        async function doTranslate() {
+          if (isTranslating) return;
+
+          if (isTranslated) {
+            // Kembali ke English
+            renderContent(originalParagraphs);
+            isTranslated = false;
+            translateLabel.textContent = 'ID';
+            translateBtn.classList.remove('bg-sky-500', 'text-white');
+            return;
+          }
+
+          if (translatedParagraphs.length > 0) {
+            // Gunakan cache terjemahan
+            renderContent(translatedParagraphs);
+            isTranslated = true;
+            translateLabel.textContent = 'EN';
+            translateBtn.classList.add('bg-sky-500', 'text-white');
+            return;
+          }
+
+          // Panggil API translasi
+          isTranslating = true;
+          translationStatus?.classList.remove('hidden');
+
+          try {
+            const filterTextParas = originalParagraphs.filter((p) => !p.startsWith('<'));
+            const transRes = await fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paragraphs: filterTextParas }),
+            });
+            const transData = await transRes.json();
+
+            let transIdx = 0;
+            translatedParagraphs = originalParagraphs.map((p) => {
+              if (p.startsWith('<')) return p;
+              return transData.translated[transIdx++] || p;
+            });
+
+            sessionStorage.setItem(cacheKey, JSON.stringify(translatedParagraphs));
+            renderContent(translatedParagraphs);
+            isTranslated = true;
+            translateLabel.textContent = 'EN';
+            translateBtn.classList.add('bg-sky-500', 'text-white');
+          } catch (e) {
+            alert('Gagal menerjemahkan bab ini. Silakan coba lagi.');
+          } finally {
+            isTranslating = false;
+            translationStatus?.classList.add('hidden');
+          }
+        }
+
+        translateBtn?.addEventListener('click', doTranslate);
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+          if (e.key === 'ArrowLeft') {
+            document.getElementById('prev-btn')?.click();
+          } else if (e.key === 'ArrowRight') {
+            document.getElementById('next-btn')?.click();
+          } else if (e.key.toLowerCase() === 't') {
+            doTranslate();
+          }
+        });
+      } catch (err) {
+        readerBody.innerHTML = '<div class="py-12 text-center text-sm text-red-400">Gagal memuat konten bab. Periksa koneksi atau file lokal.</div>';
+      }
+    })();
+  </script>
+</Layout>

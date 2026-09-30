@@ -1,0 +1,125 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #0c0f17;
+    --bg-surface: #111520;
+    --bg-elevated: #181e2b;
+    --border-color: #232b3d;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.15);
+  }
+
+  [data-theme='oled'] {
+    --bg-primary: #000000;
+    --bg-surface: #0a0a0a;
+    --bg-elevated: #141414;
+    --border-color: #222222;
+    --text-primary: #e5e5e5;
+    --text-secondary: #888888;
+    --text-muted: #555555;
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.15);
+  }
+
+  [data-theme='sepia'] {
+    --bg-primary: #fbf0d9;
+    --bg-surface: #f4e5c5;
+    --bg-elevated: #eedcba;
+    --border-color: #dfcaa2;
+    --text-primary: #382b1d;
+    --text-secondary: #6e5840;
+    --text-muted: #967d60;
+    --accent: #b45309;
+    --accent-glow: rgba(180, 83, 9, 0.15);
+  }
+
+  [data-theme='light'] {
+    --bg-primary: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f1f5f9;
+    --border-color: #e2e8f0;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent: #0284c7;
+    --accent-glow: rgba(2, 132, 199, 0.15);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Impeccable Reading Typography */
+  .reading-content {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 1.15rem;
+    line-height: 1.85;
+    letter-spacing: -0.01em;
+    max-width: 72ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .reading-content p {
+    margin-top: 1.25em;
+    margin-bottom: 1.25em;
+    text-indent: 1.5em;
+  }
+
+  .reading-content p:first-of-type {
+    text-indent: 0;
+  }
+
+  .reading-content h1, 
+  .reading-content h2, 
+  .reading-content h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.025em;
+    font-weight: 700;
+    margin-top: 2em;
+    margin-bottom: 0.8em;
+  }
+
+  /* Custom Selection styling per Impeccable Craft Floor */
+  ::selection {
+    background-color: var(--accent);
+    color: #ffffff;
+  }
+
+  [data-theme='sepia'] ::selection {
+    background-color: #d97706;
+    color: #ffffff;
+  }
+
+  /* Smooth Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+}

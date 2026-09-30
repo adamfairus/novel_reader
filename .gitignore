@@ -1,0 +1,21 @@
+# Build & Dependency
+node_modules/
+dist/
+.astro/
+.vercel/
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Local Novel Source Folders (Disimpan di R2, diabaikan dari git repo)
+Myst Might Mayhem/
+Star Embracing Swordmaster/
+The Heavenly Demon/
+*.epub
+
+# System files
+.directory
+.DS_Store
+*.log

@@ -1,0 +1,171 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getLocalNovel } from '../../lib/novels';
+
+const { slug } = Astro.params;
+const novel = getLocalNovel(slug || '');
+
+if (!novel) {
+  return Astro.redirect('/');
+}
+---
+
+<Layout title={novel.title} description={novel.description}>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center gap-2 text-xs text-[var(--text-muted)] mb-8">
+      <a href="/" class="hover:text-[var(--text-primary)] transition-colors">Katalog</a>
+      <span>/</span>
+      <span class="text-[var(--text-primary)] font-medium truncate">{novel.title}</span>
+    </nav>
+
+    <!-- Novel Hero -->
+    <div class="flex flex-col sm:flex-row gap-6 sm:gap-8 items-start pb-10 border-b border-[var(--border-color)]">
+      <div class="w-40 sm:w-48 aspect-[3/4] rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-elevated)] shrink-0 shadow-lg">
+        <img
+          src={novel.cover_url}
+          alt={novel.title}
+          class="w-full h-full object-cover"
+        />
+      </div>
+
+      <div class="flex-1">
+        <p class="text-xs font-semibold text-sky-400 tracking-wider uppercase mb-1">
+          {novel.author}
+        </p>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
+          {novel.title}
+        </h1>
+
+        <div class="flex items-center gap-4 mt-3 text-xs text-[var(--text-secondary)]">
+          <span class="px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-color)]">
+            Total {novel.total_chapters} Bab
+          </span>
+          <span class="text-emerald-400 font-medium">Lengkap</span>
+        </div>
+
+        {novel.description && (
+          <p class="mt-4 text-sm text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+            {novel.description}
+          </p>
+        )}
+
+        <!-- Quick Action Buttons -->
+        <div class="mt-6 flex flex-wrap items-center gap-3">
+          <a
+            id="continue-read-btn"
+            href={`/novel/${novel.slug}/1`}
+            class="py-2.5 px-5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-medium text-xs shadow-sm transition-colors flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="6 3 20 12 6 21 6 3"/>
+            </svg>
+            <span id="continue-read-text">Mulai dari Bab 1</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chapter List Header & Search -->
+    <div class="mt-10">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-[var(--text-primary)]">Daftar Bab</h2>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">Pilih bab untuk mulai membaca</p>
+        </div>
+
+        <!-- Search Input -->
+        <div class="w-full sm:w-64 relative">
+          <input
+            id="chapter-search"
+            type="text"
+            placeholder="Cari bab..."
+            class="w-full py-2 pl-9 pr-4 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-sky-400 transition-colors"
+          />
+          <svg class="w-4 h-4 absolute left-3 top-2.5 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-spinner" class="py-12 text-center text-xs text-[var(--text-muted)]">
+        Memuat daftar bab...
+      </div>
+
+      <!-- Chapter Grid / List -->
+      <div id="chapter-list-container" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+        <!-- Rendered via Client JavaScript for zero-lag filtering -->
+      </div>
+    </div>
+  </div>
+
+  <script define:vars={{ slug: novel.slug }}>
+    (async function () {
+      const storageKey = `arcana-last-read-${slug}`;
+      const lastRead = localStorage.getItem(storageKey);
+      if (lastRead) {
+        const btn = document.getElementById('continue-read-btn');
+        const text = document.getElementById('continue-read-text');
+        if (btn && text) {
+          btn.href = `/novel/${slug}/${lastRead}`;
+          text.textContent = `Lanjut Bab ${lastRead}`;
+        }
+      }
+
+      // Fetch chapters list
+      try {
+        const res = await fetch(`/api/chapters/${slug}`);
+        const chapters = await res.json();
+        const container = document.getElementById('chapter-list-container');
+        const spinner = document.getElementById('loading-spinner');
+        const searchInput = document.getElementById('chapter-search');
+
+        if (!container || !spinner) return;
+        spinner.classList.add('hidden');
+        container.classList.remove('hidden');
+
+        function renderChapters(list) {
+          container.innerHTML = '';
+          if (list.length === 0) {
+            container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-[var(--text-muted)]">Bab tidak ditemukan</div>';
+            return;
+          }
+
+          list.forEach((ch) => {
+            const a = document.createElement('a');
+            a.href = `/novel/${slug}/${ch.index}`;
+            a.className = 'p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all truncate block group';
+            a.innerHTML = `
+              <span class="text-sky-400 font-mono text-[10px] mr-2">#${ch.index}</span>
+              <span class="group-hover:text-sky-300 transition-colors">${ch.title}</span>
+            `;
+            container.appendChild(a);
+          });
+        }
+
+        renderChapters(chapters);
+
+        if (searchInput) {
+          searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+              renderChapters(chapters);
+              return;
+            }
+            const filtered = chapters.filter(
+              (ch) =>
+                ch.title.toLowerCase().includes(query) ||
+                String(ch.index).includes(query)
+            );
+            renderChapters(filtered);
+          });
+        }
+      } catch (err) {
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) spinner.textContent = 'Gagal memuat daftar bab.';
+      }
+    })();
+  </script>
+</Layout>

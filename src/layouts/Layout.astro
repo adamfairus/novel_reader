@@ -1,0 +1,139 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  isReader?: boolean;
+}
+
+const {
+  title,
+  description = 'Web reader minimalis, cepat, dan elegan untuk membaca novel terjemahan.',
+  isReader = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="id" data-theme="obsidian">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} — Arcana Reader</title>
+  </head>
+  <body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
+    <!-- Navbar (hanya tampil penuh di halaman non-reader, di reader tampil kompak) -->
+    <header class="sticky top-0 z-40 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/90 backdrop-blur-md transition-colors duration-200">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-2 group">
+          <div class="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-color)] flex items-center justify-center text-sky-400 group-hover:border-sky-500/50 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+              <path d="M6 10h10"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-base tracking-tight text-[var(--text-primary)]">
+            Arcana<span class="text-sky-400 font-normal ml-0.5">Reader</span>
+          </span>
+        </a>
+
+        <!-- Header Actions: Theme & Navigation -->
+        <div class="flex items-center gap-3">
+          <nav class="hidden sm:flex items-center gap-1 text-sm text-[var(--text-secondary)]">
+            <a href="/" class="px-3 py-1.5 rounded-md hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors">Katalog</a>
+          </nav>
+
+          <!-- Theme Selector Dropdown / Button -->
+          <div class="relative inline-block text-left" id="theme-selector-container">
+            <button
+              id="theme-toggle-btn"
+              type="button"
+              aria-label="Ubah Tema"
+              class="p-2 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition-all"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2"/>
+                <path d="M12 20v2"/>
+                <path d="m4.93 4.93 1.41 1.41"/>
+                <path d="m17.66 17.66 1.41 1.41"/>
+                <path d="M2 12h2"/>
+                <path d="M20 12h2"/>
+                <path d="m6.34 17.66-1.41 1.41"/>
+                <path d="m19.07 4.93-1.41 1.41"/>
+              </svg>
+            </button>
+            <div
+              id="theme-menu"
+              class="hidden absolute right-0 mt-2 w-36 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] shadow-xl p-1 z-50 text-xs"
+            >
+              <button data-set-theme="obsidian" class="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] flex items-center justify-between">
+                <span>Obsidian</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#0c0f17] border border-gray-600"></span>
+              </button>
+              <button data-set-theme="oled" class="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] flex items-center justify-between">
+                <span>OLED Black</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-black border border-gray-700"></span>
+              </button>
+              <button data-set-theme="sepia" class="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] flex items-center justify-between">
+                <span>Warm Sepia</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-[#fbf0d9] border border-[#d5c39c]"></span>
+              </button>
+              <button data-set-theme="light" class="w-full text-left px-2.5 py-1.5 rounded-md hover:bg-[var(--bg-elevated)] text-[var(--text-primary)] flex items-center justify-between">
+                <span>Light</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-white border border-gray-300"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+      <slot />
+    </main>
+
+    {!isReader && (
+      <footer class="border-t border-[var(--border-color)] py-8 mt-16 text-center text-xs text-[var(--text-muted)]">
+        <p>Arcana Reader — Dibangun dengan Astro & Cloudflare R2 untuk pengalaman membaca murni.</p>
+      </footer>
+    )}
+
+    <!-- Client-side Theme Controller -->
+    <script is:inline>
+      (function () {
+        const savedTheme = localStorage.getItem('arcana-theme') || 'obsidian';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        const btn = document.getElementById('theme-toggle-btn');
+        const menu = document.getElementById('theme-menu');
+
+        if (btn && menu) {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menu.classList.toggle('hidden');
+          });
+
+          document.addEventListener('click', () => {
+            menu.classList.add('hidden');
+          });
+
+          menu.querySelectorAll('[data-set-theme]').forEach((item) => {
+            item.addEventListener('click', () => {
+              const theme = item.getAttribute('data-set-theme');
+              if (theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('arcana-theme', theme);
+              }
+              menu.classList.add('hidden');
+            });
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
