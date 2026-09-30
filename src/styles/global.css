@@ -6,13 +6,13 @@
 
 @layer base {
   :root {
-    --bg-primary: #0c0f17;
-    --bg-surface: #111520;
-    --bg-elevated: #181e2b;
-    --border-color: #232b3d;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --bg-primary: #161616;
+    --bg-surface: #1e1e1e;
+    --bg-elevated: #262626;
+    --border-color: #2e2e2e;
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
     --accent: #38bdf8;
     --accent-glow: rgba(56, 189, 248, 0.15);
   }
