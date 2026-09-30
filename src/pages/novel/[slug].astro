@@ -136,10 +136,14 @@ if (!novel) {
           list.forEach((ch) => {
             const a = document.createElement('a');
             a.href = `/novel/${slug}/${ch.index}`;
-            a.className = 'p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all truncate block group';
+            a.className = 'p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all flex items-center justify-between gap-2 group';
             a.innerHTML = `
-              <span class="text-sky-400 font-mono text-[10px] mr-2">#${ch.index}</span>
-              <span class="group-hover:text-sky-300 transition-colors">${ch.title}</span>
+              <span class="px-2 py-0.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-color)] text-sky-400 font-mono text-[11px] font-semibold shrink-0">
+                ${ch.label || `Bab ${ch.index}`}
+              </span>
+              <span class="truncate flex-1 text-left text-[var(--text-primary)] group-hover:text-sky-300 transition-colors">
+                ${ch.subtitle || ch.displayTitle || ch.title}
+              </span>
             `;
             container.appendChild(a);
           });
@@ -156,7 +160,10 @@ if (!novel) {
             }
             const filtered = chapters.filter(
               (ch) =>
-                ch.title.toLowerCase().includes(query) ||
+                (ch.displayTitle && ch.displayTitle.toLowerCase().includes(query)) ||
+                (ch.subtitle && ch.subtitle.toLowerCase().includes(query)) ||
+                (ch.label && ch.label.toLowerCase().includes(query)) ||
+                (ch.title && ch.title.toLowerCase().includes(query)) ||
                 String(ch.index).includes(query)
             );
             renderChapters(filtered);

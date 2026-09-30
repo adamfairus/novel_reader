@@ -183,7 +183,15 @@ const chapterNum = parseInt(chapter, 10) || 1;
           const trimmed = line.trim();
           if (!trimmed) return;
           if (trimmed.startsWith('# ')) {
-            chapterTitleParsed = trimmed.replace(/^#\s+/, '');
+            const raw = trimmed.replace(/^#\s+/, '').replace(/_/g, ':').trim();
+            const numMatch = raw.match(/Chapter\s*#?\s*(\d+(?:\.\d+)?)/i);
+            const chNum = numMatch ? numMatch[1] : String(chapterNum);
+            const sub = raw.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();
+            if (!sub || /^Chapter\b/i.test(sub)) {
+              chapterTitleParsed = `Bab ${chNum}`;
+            } else {
+              chapterTitleParsed = `Bab ${chNum}: ${sub}`;
+            }
           } else if (trimmed.startsWith('## ')) {
             originalParagraphs.push(`<h3>${trimmed.replace(/^##\s+/, '')}</h3>`);
           } else if (trimmed === '---') {

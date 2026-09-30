@@ -11,8 +11,28 @@ const SLUG_TO_FOLDER: Record<string, string> = {
 
 export interface ChapterItem {
   index: number;
-  title: string;
+  label: string;
+  subtitle: string;
+  displayTitle: string;
   filename: string;
+}
+
+export function parseChapterTitle(index: number, raw: string): { label: string; subtitle: string; displayTitle: string } {
+  const t = raw.replace(/_/g, ':').trim();
+
+  // Ambil nomor bab asli (dukung desimal seperti 498.9)
+  const numMatch = t.match(/Chapter\s*#?\s*(\d+(?:\.\d+)?)/i);
+  const chNum = numMatch ? numMatch[1] : String(index);
+  const label = `Bab ${chNum}`;
+
+  // Bersihkan pola ganda dari translator seperti 'Chapter 82 - 105 - Don't mess with moles (1)'
+  const sub = t.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();
+
+  if (!sub || /^Chapter\b/i.test(sub)) {
+    return { label, subtitle: '', displayTitle: label };
+  }
+
+  return { label, subtitle: sub, displayTitle: `${label}: ${sub}` };
 }
 
 export const GET: APIRoute = async ({ params }) => {
@@ -31,11 +51,14 @@ export const GET: APIRoute = async ({ params }) => {
         .order('chapter_index', { ascending: true });
 
       if (!error && data && data.length > 0) {
-        const chapters: ChapterItem[] = data.map((d) => ({
-          index: d.chapter_index,
-          title: d.title,
-          filename: d.r2_key,
-        }));
+        const chapters: ChapterItem[] = data.map((d) => {
+          const parsed = parseChapterTitle(d.chapter_index, d.title);
+          return {
+            index: d.chapter_index,
+            ...parsed,
+            filename: d.r2_key,
+          };
+        });
         return new Response(JSON.stringify(chapters), {
           headers: { 'Content-Type': 'application/json' },
         });
@@ -55,9 +78,12 @@ export const GET: APIRoute = async ({ params }) => {
         const match = filename.match(/^(\d+)\s*-\s*(.+)\.md$/);
         const index = match ? parseInt(match[1], 10) : 0;
         const rawTitle = match ? match[2] : filename.replace(/\.md$/, '');
-        // kembalikan underscore ke karakter aslinya jika ada
-        const title = rawTitle.replace(/_/g, ':');
-        return { index, title, filename };
+        const parsed = parseChapterTitle(index, rawTitle);
+        return {
+          index,
+          ...parsed,
+          filename,
+        };
       });
 
       return new Response(JSON.stringify(chapters), {
