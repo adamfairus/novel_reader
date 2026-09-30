@@ -44,6 +44,10 @@ export const GET: APIRoute = async ({ request }) => {
       // cari file yang cocok dengan nomor index atau nama file
       const targetFile = files.find((f) => {
         if (f === chapterParam || f === `${chapterParam}.md`) return true;
+        const chDirect = f.match(/^Chapter\s*0*(\d+(?:\.\d+)?)/i);
+        if (chDirect && parseInt(chDirect[1], 10) === parseInt(chapterParam, 10)) {
+          return true;
+        }
         const match = f.match(/^(\d+)\s*-/);
         return match && parseInt(match[1], 10) === parseInt(chapterParam, 10);
       });

@@ -239,9 +239,15 @@ def main() -> int:
 
         chapters_meta = []
         for f in files:
-            m = re.match(r"^(\d+)\s*-\s*(.+)\.md$", f.name)
-            idx = int(m.group(1)) if m else 0
-            title = m.group(2).replace("_", ":") if m else f.stem
+            m_ch = re.match(r"^Chapter\s*0*(\d+(?:\.\d+)?)(?:\s*[-–:_]\s*(.*))?\.md$", f.name, re.I)
+            if m_ch:
+                idx = int(float(m_ch.group(1)))
+                sub = (m_ch.group(2) or "").strip()
+                title = f"Chapter {idx}: {sub}" if sub else f"Chapter {idx}"
+            else:
+                m = re.match(r"^(\d+)\s*-\s*(.+)\.md$", f.name)
+                idx = int(m.group(1)) if m else 0
+                title = m.group(2).replace("_", ":") if m else f.stem
             r2_target_key = f"novels/{n['slug']}/{idx}.md"
 
             chapters_meta.append({

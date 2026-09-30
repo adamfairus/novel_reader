@@ -75,6 +75,18 @@ export const GET: APIRoute = async ({ params }) => {
     if (fs.existsSync(localDir)) {
       const files = fs.readdirSync(localDir).filter((f) => f.endsWith('.md')).sort();
       const chapters: ChapterItem[] = files.map((filename) => {
+        const chDirect = filename.match(/^Chapter\s*0*(\d+(?:\.\d+)?)(?:\s*[-–:_]\s*(.*))?\.md$/i);
+        if (chDirect) {
+          const index = parseInt(chDirect[1], 10);
+          const rawTitle = chDirect[2] ? `Chapter ${index} - ${chDirect[2]}` : `Chapter ${index}`;
+          const parsed = parseChapterTitle(index, rawTitle);
+          return {
+            index,
+            ...parsed,
+            filename,
+          };
+        }
+
         const match = filename.match(/^(\d+)\s*-\s*(.+)\.md$/);
         const index = match ? parseInt(match[1], 10) : 0;
         const rawTitle = match ? match[2] : filename.replace(/\.md$/, '');
