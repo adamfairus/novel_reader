@@ -44,12 +44,30 @@ export const GET: APIRoute = async ({ request }) => {
       // cari file yang cocok dengan nomor index atau nama file
       const targetFile = files.find((f) => {
         if (f === chapterParam || f === `${chapterParam}.md`) return true;
+
+        function normalizeChNum(str: string) {
+          if (!str) return '';
+          if (str.includes('.')) {
+            const [intP, decP] = str.split('.');
+            return intP ? `${parseInt(intP, 10)}.${decP}` : str;
+          }
+          const parsed = parseInt(str, 10);
+          return isNaN(parsed) ? str : String(parsed);
+        }
+
+        const targetNorm = normalizeChNum(chapterParam);
+
         const chDirect = f.match(/^Chapter\s*0*(\d+(?:\.\d+)?)/i);
-        if (chDirect && parseInt(chDirect[1], 10) === parseInt(chapterParam, 10)) {
+        if (chDirect && normalizeChNum(chDirect[1]) === targetNorm) {
           return true;
         }
+
         const match = f.match(/^(\d+)\s*-/);
-        return match && parseInt(match[1], 10) === parseInt(chapterParam, 10);
+        if (match && normalizeChNum(match[1]) === targetNorm) {
+          return true;
+        }
+
+        return false;
       });
 
       if (targetFile) {

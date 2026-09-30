@@ -73,12 +73,31 @@ export const GET: APIRoute = async ({ params }) => {
   if (folderName) {
     const localDir = path.resolve(process.cwd(), folderName);
     if (fs.existsSync(localDir)) {
-      const files = fs.readdirSync(localDir).filter((f) => f.endsWith('.md')).sort();
+      function parseChForSort(fn: string): [number, number] {
+        const m = fn.match(/Chapter\s*0*(\d+)(?:\.(\d+))?/i);
+        if (!m) return [0, -1];
+        const major = parseInt(m[1], 10);
+        const minor = m[2] !== undefined ? parseInt(m[2], 10) : -1;
+        return [major, minor];
+      }
+
+      const files = fs
+        .readdirSync(localDir)
+        .filter((f) => f.endsWith('.md'))
+        .sort((a, b) => {
+          const [majA, minA] = parseChForSort(a);
+          const [majB, minB] = parseChForSort(b);
+          if (majA !== majB) return majA - majB;
+          if (minA !== minB) return minA - minB;
+          return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
       const chapters: ChapterItem[] = files.map((filename) => {
         const chDirect = filename.match(/^Chapter\s*0*(\d+(?:\.\d+)?)(?:\s*[-–:_]\s*(.*))?\.md$/i);
         if (chDirect) {
-          const index = parseInt(chDirect[1], 10);
-          const rawTitle = chDirect[2] ? `Chapter ${index} - ${chDirect[2]}` : `Chapter ${index}`;
+          const rawNum = chDirect[1];
+          const index = parseFloat(rawNum);
+          const rawTitle = chDirect[2] ? `Chapter ${rawNum} - ${chDirect[2]}` : `Chapter ${rawNum}`;
           const parsed = parseChapterTitle(index, rawTitle);
           return {
             index,
