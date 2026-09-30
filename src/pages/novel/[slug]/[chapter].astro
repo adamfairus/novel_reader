@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import { getLocalNovel } from '../../../lib/novels';
+import chaptersManifest from '@/data/chapters-manifest.json';
 
 const { slug, chapter } = Astro.params;
 const novel = getLocalNovel(slug || '');
@@ -9,10 +10,25 @@ if (!novel || !chapter) {
   return Astro.redirect('/');
 }
 
-const chapterNum = parseInt(chapter, 10) || 1;
+interface ChapterItem {
+  index: number;
+  label: string;
+  subtitle: string;
+  displayTitle: string;
+  filename: string;
+}
+
+const chaptersList: ChapterItem[] = (chaptersManifest as Record<string, ChapterItem[]>)[novel.slug] || [];
+
+const currentIdx = chaptersList.findIndex((ch) => String(ch.index) === String(chapter));
+const currentChapter = currentIdx !== -1 ? chaptersList[currentIdx] : null;
+const prevChapter = currentIdx > 0 ? chaptersList[currentIdx - 1] : null;
+const nextChapter = currentIdx !== -1 && currentIdx < chaptersList.length - 1 ? chaptersList[currentIdx + 1] : null;
+
+const initialTitle = currentChapter ? (currentChapter.displayTitle || currentChapter.label) : `Chapter ${chapter}`;
 ---
 
-<Layout title={`${novel.title} — Chapter ${chapterNum}`} isReader={true}>
+<Layout title={`${novel.title} — ${initialTitle}`} isReader={true}>
   <!-- Top Floating Reader Bar -->
   <div class="sticky top-0 z-30 border-b border-[var(--border-color)] bg-[var(--bg-primary)]/95 backdrop-blur-md transition-colors">
     <div class="max-w-4xl mx-auto px-4 h-12 flex items-center justify-between text-xs">
@@ -29,7 +45,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
 
       <!-- Center: Chapter Title Indicator -->
       <div class="text-center font-medium truncate max-w-[200px] sm:max-w-xs text-[var(--text-primary)]" id="header-chapter-title">
-        Chapter {chapterNum}
+        {initialTitle}
       </div>
 
       <!-- Right: Reader Controls (Translate, Font, Prev, Next) -->
@@ -81,7 +97,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
         {novel.title}
       </p>
       <h1 id="chapter-main-title" class="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)]">
-        Memuat Chapter {chapterNum}...
+        {initialTitle}
       </h1>
       <div id="translation-status" class="hidden mt-2 text-[11px] text-sky-400 font-medium animate-pulse">
         Sedang menerjemahkan ke Bahasa Indonesia...
@@ -99,9 +115,9 @@ const chapterNum = parseInt(chapter, 10) || 1;
     <footer class="max-w-measure mx-auto mt-16 pt-8 border-t border-[var(--border-color)] flex items-center justify-between gap-4">
       <a
         id="prev-btn"
-        href={`/novel/${novel.slug}/${Math.max(1, chapterNum - 1)}`}
+        href={prevChapter ? `/novel/${novel.slug}/${prevChapter.index}` : '#'}
         class={`py-2.5 px-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] text-xs font-medium text-[var(--text-primary)] transition-all flex items-center gap-1.5 ${
-          chapterNum <= 1 ? 'opacity-40 pointer-events-none' : ''
+          !prevChapter ? 'opacity-40 pointer-events-none' : ''
         }`}
       >
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -119,8 +135,10 @@ const chapterNum = parseInt(chapter, 10) || 1;
 
       <a
         id="next-btn"
-        href={`/novel/${novel.slug}/${chapterNum + 1}`}
-        class="py-2.5 px-4 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-medium shadow-sm transition-all flex items-center gap-1.5"
+        href={nextChapter ? `/novel/${novel.slug}/${nextChapter.index}` : '#'}
+        class={`py-2.5 px-4 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-xs font-medium shadow-sm transition-all flex items-center gap-1.5 ${
+          !nextChapter ? 'opacity-40 pointer-events-none' : ''
+        }`}
       >
         <span>Selanjutnya</span>
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -131,10 +149,10 @@ const chapterNum = parseInt(chapter, 10) || 1;
   </article>
 
   <!-- Client-side Reader Engine (Fetch, Typography, Translate, Cache) -->
-  <script define:vars={{ slug: novel.slug, chapterNum }}>
+  <script define:vars={{ slug: novel.slug, chapterParam: chapter }}>
     (async function () {
       // Simpan progress baca terakhir
-      localStorage.setItem(`novel-last-read-${slug}`, String(chapterNum));
+      localStorage.setItem(`novel-last-read-${slug}`, String(chapterParam));
 
       const readerBody = document.getElementById('reader-body');
       const chapterMainTitle = document.getElementById('chapter-main-title');
@@ -170,13 +188,13 @@ const chapterNum = parseInt(chapter, 10) || 1;
 
       // Fetch chapter content
       try {
-        const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterNum}`);
+        const res = await fetch(`/api/content?slug=${slug}&chapter=${chapterParam}`);
         if (!res.ok) throw new Error('Chapter tidak ditemukan');
         const data = await res.json();
 
         // Parse content Markdown sederhana -> Paragraf HTML
         const rawLines = data.content.split('\n\n');
-        let chapterTitleParsed = `Chapter ${chapterNum}`;
+        let chapterTitleParsed = `Chapter ${chapterParam}`;
 
         originalParagraphs = [];
         rawLines.forEach((line) => {
@@ -185,7 +203,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
           if (trimmed.startsWith('# ')) {
             const raw = trimmed.replace(/^#\s+/, '').replace(/_/g, ':').trim();
             const numMatch = raw.match(/Chapter\s*#?\s*(\d+(?:\.\d+)?)/i);
-            const chNum = numMatch ? numMatch[1] : String(chapterNum);
+            const chNum = numMatch ? numMatch[1] : String(chapterParam);
             const sub = raw.replace(/^Chapter\s*#?\s*\d+(?:\.\d+)?\s*(?:[-–:]\s*\d+\s*)?[-–:]\s*/i, '').trim();
             if (!sub || /^Chapter\b/i.test(sub)) {
               chapterTitleParsed = `Chapter ${chNum}`;
@@ -220,7 +238,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
         renderContent(originalParagraphs);
 
         // Translate logic with Session Cache
-        const cacheKey = `novel-trans-${slug}-${chapterNum}`;
+        const cacheKey = `novel-trans-${slug}-${chapterParam}`;
         const cachedTrans = sessionStorage.getItem(cacheKey);
         if (cachedTrans) {
           translatedParagraphs = JSON.parse(cachedTrans);

@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getLocalNovel } from '../../lib/novels';
+import chaptersManifest from '@/data/chapters-manifest.json';
 
 const { slug } = Astro.params;
 const novel = getLocalNovel(slug || '');
@@ -8,6 +9,16 @@ const novel = getLocalNovel(slug || '');
 if (!novel) {
   return Astro.redirect('/');
 }
+
+interface ChapterItem {
+  index: number;
+  label: string;
+  subtitle: string;
+  displayTitle: string;
+  filename: string;
+}
+
+const chapters: ChapterItem[] = (chaptersManifest as Record<string, ChapterItem[]>)[novel.slug] || [];
 ---
 
 <Layout title={novel.title} description={novel.description}>
@@ -39,7 +50,7 @@ if (!novel) {
 
         <div class="flex items-center gap-4 mt-3 text-xs text-[var(--text-secondary)]">
           <span class="px-2.5 py-1 rounded-md bg-[var(--bg-elevated)] border border-[var(--border-color)]">
-            Total {novel.total_chapters} Chapters
+            Total {chapters.length || novel.total_chapters} Chapters
           </span>
           <span class="text-emerald-400 font-medium">Lengkap</span>
         </div>
@@ -54,7 +65,7 @@ if (!novel) {
         <div class="mt-6 flex flex-wrap items-center gap-3">
           <a
             id="continue-read-btn"
-            href={`/novel/${novel.slug}/1`}
+            href={`/novel/${novel.slug}/${chapters[0]?.index ?? 1}`}
             class="py-2.5 px-5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-medium text-xs shadow-sm transition-colors flex items-center gap-2"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -89,20 +100,40 @@ if (!novel) {
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div id="loading-spinner" class="py-12 text-center text-xs text-[var(--text-muted)]">
-        Memuat daftar chapter...
+      <!-- No match search message -->
+      <div id="no-match-message" class="hidden py-12 text-center text-xs text-[var(--text-muted)]">
+        Tidak ada chapter yang cocok dengan kata kunci pencarian.
       </div>
 
-      <!-- Chapter Grid / List -->
-      <div id="chapter-list-container" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-        <!-- Rendered via Client JavaScript for zero-lag filtering -->
+      <!-- Chapter Grid / List (Server Rendered — 100% Reliable di Vercel) -->
+      <div id="chapter-list-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+        {chapters.length === 0 ? (
+          <div class="col-span-full py-8 text-center text-xs text-[var(--text-muted)]">
+            Chapter tidak ditemukan
+          </div>
+        ) : (
+          chapters.map((ch) => (
+            <a
+              href={`/novel/${novel.slug}/${ch.index}`}
+              class="chapter-card p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all flex items-center justify-between gap-2 group"
+              data-search={`${ch.label} ${ch.subtitle || ch.displayTitle || ''} ${ch.index}`.toLowerCase()}
+            >
+              <span class="px-2 py-0.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-color)] text-sky-400 font-mono text-[11px] font-semibold shrink-0">
+                {ch.label}
+              </span>
+              <span class="truncate flex-1 text-left text-[var(--text-primary)] group-hover:text-sky-300 transition-colors">
+                {ch.subtitle || ch.displayTitle}
+              </span>
+            </a>
+          ))
+        )}
       </div>
     </div>
   </div>
 
   <script define:vars={{ slug: novel.slug }}>
-    (async function () {
+    (function () {
+      // 1. Resume reading progress bookmark
       const storageKey = `novel-last-read-${slug}`;
       const lastRead = localStorage.getItem(storageKey) || localStorage.getItem(`arcana-last-read-${slug}`);
       if (lastRead) {
@@ -114,64 +145,29 @@ if (!novel) {
         }
       }
 
-      // Fetch chapters list
-      try {
-        const res = await fetch(`/api/chapters/${slug}`);
-        const chapters = await res.json();
-        const container = document.getElementById('chapter-list-container');
-        const spinner = document.getElementById('loading-spinner');
-        const searchInput = document.getElementById('chapter-search');
+      // 2. Client-side Search / Filtering
+      const searchInput = document.getElementById('chapter-search');
+      const cards = document.querySelectorAll('.chapter-card');
+      const noMatch = document.getElementById('no-match-message');
+      const container = document.getElementById('chapter-list-container');
 
-        if (!container || !spinner) return;
-        spinner.classList.add('hidden');
-        container.classList.remove('hidden');
+      if (searchInput && cards.length > 0) {
+        searchInput.addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase().trim();
+          let visibleCount = 0;
 
-        function renderChapters(list) {
-          container.innerHTML = '';
-          if (list.length === 0) {
-            container.innerHTML = '<div class="col-span-full py-8 text-center text-xs text-[var(--text-muted)]">Chapter tidak ditemukan</div>';
-            return;
+          cards.forEach((card) => {
+            const text = card.getAttribute('data-search') || '';
+            const match = !query || text.includes(query);
+            card.classList.toggle('hidden', !match);
+            if (match) visibleCount++;
+          });
+
+          if (noMatch && container) {
+            noMatch.classList.toggle('hidden', visibleCount > 0);
+            container.classList.toggle('hidden', visibleCount === 0);
           }
-
-          list.forEach((ch) => {
-            const a = document.createElement('a');
-            a.href = `/novel/${slug}/${ch.index}`;
-            a.className = 'p-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] hover:bg-[var(--bg-elevated)] hover:border-sky-500/40 text-xs font-medium text-[var(--text-primary)] transition-all flex items-center justify-between gap-2 group';
-            a.innerHTML = `
-              <span class="px-2 py-0.5 rounded bg-[var(--bg-elevated)] border border-[var(--border-color)] text-sky-400 font-mono text-[11px] font-semibold shrink-0">
-                ${ch.label || `Chapter ${ch.index}`}
-              </span>
-              <span class="truncate flex-1 text-left text-[var(--text-primary)] group-hover:text-sky-300 transition-colors">
-                ${ch.subtitle || ch.displayTitle || ch.title}
-              </span>
-            `;
-            container.appendChild(a);
-          });
-        }
-
-        renderChapters(chapters);
-
-        if (searchInput) {
-          searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (!query) {
-              renderChapters(chapters);
-              return;
-            }
-            const filtered = chapters.filter(
-              (ch) =>
-                (ch.displayTitle && ch.displayTitle.toLowerCase().includes(query)) ||
-                (ch.subtitle && ch.subtitle.toLowerCase().includes(query)) ||
-                (ch.label && ch.label.toLowerCase().includes(query)) ||
-                (ch.title && ch.title.toLowerCase().includes(query)) ||
-                String(ch.index).includes(query)
-            );
-            renderChapters(filtered);
-          });
-        }
-      } catch (err) {
-        const spinner = document.getElementById('loading-spinner');
-        if (spinner) spinner.textContent = 'Gagal memuat daftar chapter.';
+        });
       }
     })();
   </script>
