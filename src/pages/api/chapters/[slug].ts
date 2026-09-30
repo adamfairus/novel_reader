@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import fs from 'node:fs';
 import path from 'node:path';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
+import chaptersManifest from '@/data/chapters-manifest.json';
 
 const SLUG_TO_FOLDER: Record<string, string> = {
   'myst-might-mayhem': 'Myst Might Mayhem',
@@ -64,11 +65,22 @@ export const GET: APIRoute = async ({ params }) => {
         });
       }
     } catch {
-      // lanjut fallback ke file lokal
+      // lanjut ke manifest
     }
   }
 
-  // 2. Fallback baca dari folder lokal jika masih dalam dev / sebelum upload ke R2
+  // 2. Ambil dari bundled manifest (ringan, instan, 100% jalan di Vercel tanpa butuh folder lokal)
+  const manifestList = (chaptersManifest as Record<string, ChapterItem[]>)[slug];
+  if (manifestList && manifestList.length > 0) {
+    return new Response(JSON.stringify(manifestList), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=3600, s-maxage=86400',
+      },
+    });
+  }
+
+  // 3. Fallback baca dari folder lokal jika masih dalam dev / sebelum upload ke R2
   const folderName = SLUG_TO_FOLDER[slug];
   if (folderName) {
     const localDir = path.resolve(process.cwd(), folderName);
