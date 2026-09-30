@@ -134,7 +134,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
   <script define:vars={{ slug: novel.slug, chapterNum }}>
     (async function () {
       // Simpan progress baca terakhir
-      localStorage.setItem(`arcana-last-read-${slug}`, String(chapterNum));
+      localStorage.setItem(`novel-last-read-${slug}`, String(chapterNum));
 
       const readerBody = document.getElementById('reader-body');
       const chapterMainTitle = document.getElementById('chapter-main-title');
@@ -151,21 +151,21 @@ const chapterNum = parseInt(chapter, 10) || 1;
       let isTranslating = false;
 
       // Font size persistence
-      const savedFontSize = parseInt(localStorage.getItem('arcana-font-size') || '18', 10);
+      const savedFontSize = parseInt(localStorage.getItem('novel-reader-font-size') || localStorage.getItem('arcana-font-size') || '18', 10);
       if (readerBody) readerBody.style.fontSize = `${savedFontSize}px`;
 
       fontIncBtn?.addEventListener('click', () => {
         const cur = parseInt(readerBody.style.fontSize || '18', 10);
         const next = Math.min(28, cur + 2);
         readerBody.style.fontSize = `${next}px`;
-        localStorage.setItem('arcana-font-size', String(next));
+        localStorage.setItem('novel-reader-font-size', String(next));
       });
 
       fontDecBtn?.addEventListener('click', () => {
         const cur = parseInt(readerBody.style.fontSize || '18', 10);
         const next = Math.max(14, cur - 2);
         readerBody.style.fontSize = `${next}px`;
-        localStorage.setItem('arcana-font-size', String(next));
+        localStorage.setItem('novel-reader-font-size', String(next));
       });
 
       // Fetch chapter content
@@ -220,7 +220,7 @@ const chapterNum = parseInt(chapter, 10) || 1;
         renderContent(originalParagraphs);
 
         // Translate logic with Session Cache
-        const cacheKey = `arcana-trans-${slug}-${chapterNum}`;
+        const cacheKey = `novel-trans-${slug}-${chapterNum}`;
         const cachedTrans = sessionStorage.getItem(cacheKey);
         if (cachedTrans) {
           translatedParagraphs = JSON.parse(cachedTrans);

@@ -103,8 +103,8 @@ if (!novel) {
 
   <script define:vars={{ slug: novel.slug }}>
     (async function () {
-      const storageKey = `arcana-last-read-${slug}`;
-      const lastRead = localStorage.getItem(storageKey);
+      const storageKey = `novel-last-read-${slug}`;
+      const lastRead = localStorage.getItem(storageKey) || localStorage.getItem(`arcana-last-read-${slug}`);
       if (lastRead) {
         const btn = document.getElementById('continue-read-btn');
         const text = document.getElementById('continue-read-text');

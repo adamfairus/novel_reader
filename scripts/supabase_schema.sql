@@ -1,4 +1,4 @@
--- Arcana Reader - Supabase Database Schema
+-- Novel Reader - Supabase Database Schema
 -- Jalankan query ini di Supabase SQL Editor jika ingin mengaktifkan sinkronisasi database
 
 -- 1. Tabel Novels

@@ -21,7 +21,7 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title} — Arcana Reader</title>
+    <title>{title} — Novel Reader</title>
   </head>
   <body class="min-h-screen flex flex-col selection:bg-sky-500 selection:text-white">
     <!-- Navbar (hanya tampil penuh di halaman non-reader, di reader tampil kompak) -->
@@ -36,7 +36,7 @@ const {
             </svg>
           </div>
           <span class="font-semibold text-base tracking-tight text-[var(--text-primary)]">
-            Arcana<span class="text-sky-400 font-normal ml-0.5">Reader</span>
+            Novel<span class="text-sky-400 font-normal ml-0.5">Reader</span>
           </span>
         </a>
 
@@ -99,14 +99,14 @@ const {
 
     {!isReader && (
       <footer class="border-t border-[var(--border-color)] py-8 mt-16 text-center text-xs text-[var(--text-muted)]">
-        <p>Arcana Reader — Dibangun dengan Astro & Cloudflare R2 untuk pengalaman membaca murni.</p>
+        <p>Novel Reader — Dibangun dengan Astro & Cloudflare R2 untuk pengalaman membaca murni.</p>
       </footer>
     )}
 
     <!-- Client-side Theme Controller -->
     <script is:inline>
       (function () {
-        const savedTheme = localStorage.getItem('arcana-theme') || 'obsidian';
+        const savedTheme = localStorage.getItem('novel-reader-theme') || localStorage.getItem('arcana-theme') || 'obsidian';
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         const btn = document.getElementById('theme-toggle-btn');
@@ -127,7 +127,7 @@ const {
               const theme = item.getAttribute('data-set-theme');
               if (theme) {
                 document.documentElement.setAttribute('data-theme', theme);
-                localStorage.setItem('arcana-theme', theme);
+                localStorage.setItem('novel-reader-theme', theme);
               }
               menu.classList.add('hidden');
             });

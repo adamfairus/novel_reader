@@ -1,4 +1,4 @@
-# 📖 Arcana Reader
+# 📖 Novel Reader
 
 Web reader minimalis, cepat, dan elegan yang dibangun dengan **Astro 5**, **Tailwind CSS**, **Cloudflare R2**, dan **Supabase**. Didesain dengan standar tinggi **Impeccable Design System** (Zero AI Slop, ergonomi membaca optimal, dan performa tinggi).
 
@@ -87,7 +87,7 @@ python3 scripts/sync_to_r2_supabase.py --all
 1. Commit dan push proyek ini ke GitHub:
    ```bash
    git add .
-   git commit -m "feat: initial arcana novel reader setup"
+   git commit -m "feat: initial novel reader setup"
    git branch -M main
    # git remote add origin https://github.com/adamfairus/<repo-name>.git
    # git push -u origin main
